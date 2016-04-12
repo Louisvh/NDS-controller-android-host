@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">NDS Controller</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="subtype_en_US">UDP keyboard</string>
+    <string name="action_settings">Settings</string>
+
+</resources>
