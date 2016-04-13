@@ -2,19 +2,20 @@ package com.ldvhrtn.ndscontroller;
 
 import android.app.Activity;
 import android.content.Context;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.text.format.Formatter;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
+
 import android.util.Log;
 
 public class FrontendMain extends Activity {
@@ -45,6 +46,8 @@ public class FrontendMain extends Activity {
                     Log.d("IPAddress : ",ipaddress.toString());
                     Log.d(" Port : ",Integer.toString(port));
                 }
+            } catch (SocketException se) {
+                Log.d("UDP", "Socket closed", se);
             } catch (Exception e) {
                 Log.e("UDP", "S: Error", e);
             }
@@ -90,7 +93,7 @@ public class FrontendMain extends Activity {
         }
 
         protected void onPostExecute(String msg) {
-            Log.e("post_execute", "hit");
+            Log.d("post_execute", "hit");
         }
     }
 
@@ -105,13 +108,32 @@ public class FrontendMain extends Activity {
         setContentView(R.layout.activity_frontend_main);
         TextView m_textview;
         m_textview = (TextView) findViewById(R.id.hello_textview);
+        boolean connectable = false;
+        boolean wifi_connection = false;
+        boolean currently_tethering = false;
 
-        WifiManager wifiMgr = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
-        int m_ip = wifiInfo.getIpAddress();
-        String m_ip_s = Formatter.formatIpAddress(m_ip);
-
-        m_textview.setText(m_ip_s);
+        try {
+            ConnectionStateManager tetherMan = new ConnectionStateManager(getBaseContext());
+            if (tetherMan.get_tether_state()) {
+                currently_tethering = true;
+                if (tetherMan.connection_nds_compatible()) {
+                    connectable = true;
+                    m_textview.setText("192.168.43.1, connection compatible");
+                } else {
+                    m_textview.setText("192.168.43.1, connection might not be compatible");
+                }
+            } else if (tetherMan.wifi_is_connected()) {
+                wifi_connection = true;
+                if (tetherMan.connection_nds_compatible()) {
+                    connectable = true;
+                    m_textview.setText(tetherMan.wifi_ip()+", connection compatible");
+                } else {
+                    m_textview.setText(tetherMan.wifi_ip()+", nds might not be able to connect");
+                }
+            }
+        } catch (Throwable e){
+            Log.e("frontmain", "throwable in tetherMan creation", e);
+        }
 
         rec_task = new Rec_UDP_packets();
         rec_task.execute();
