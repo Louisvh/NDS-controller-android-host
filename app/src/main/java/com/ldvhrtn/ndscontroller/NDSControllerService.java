@@ -131,6 +131,6 @@ public class NDSControllerService extends InputMethodService {
         super.onFinishInput();
         Toast.makeText(getApplicationContext(), "Stopping UDP input", Toast.LENGTH_SHORT).show();
         rec_task.cancel(true);
-        m_sock.close();
+        if (m_sock != null) m_sock.close();
     }
 }

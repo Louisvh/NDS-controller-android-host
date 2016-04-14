@@ -83,13 +83,15 @@ public class ConnectionStateManager {
 
             if (networkList != null) {
                 for (ScanResult network : networkList) {
-                    if (currentSSID.equals(network.SSID)){
+                    if (currentSSID.equals('"'+network.SSID+'"')){
                         String Capabilities =  network.capabilities;
                         Log.d (TAG, network.SSID + " capabilities : " + Capabilities);
 
                         if (Capabilities.contains("WPA2") || Capabilities.contains("WPA")
                                 || Capabilities.contains("WEP")) {
                             trivial_connection = false;
+                        } else {
+                            trivial_connection = true;
                         }
                     }
                 }

@@ -1,149 +1,116 @@
 package com.ldvhrtn.ndscontroller;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
-import android.net.wifi.WifiConfiguration;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.text.format.Formatter;
+import android.os.SystemClock;
+import android.provider.Settings;
+import android.text.Html;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.TextView;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
-
 import android.util.Log;
 
 public class FrontendMain extends Activity {
 
-    DatagramSocket m_sock;
-    Rec_UDP_packets rec_task;
+    static final String con_ok_string = ", connection compatible";
+    static final String con_not_ok_string = ", NDS may <font color='#EE0000'>not</font> be able to connect";
+    CheckForNetworkUpdates netcheck_task;
+    boolean connectible = false;
+    boolean wifi_connection = false;
+    boolean currently_tethering = false;
 
-    int last_held_buttons = 0;
-    //correspond to libnds codes in order
-    int[] events = {96,97,109,108,22,21,19,20,102,103,99,100,188,189};
-
-    class Rec_UDP_packets extends AsyncTask<Void, String, Void> {
-        private Exception exception;
+    class CheckForNetworkUpdates extends AsyncTask<Void, String, Void> {
         protected Void doInBackground(Void... v) {
-            try {
-                m_sock=new DatagramSocket(3210);
-                while(!isCancelled())
-                {
-                    byte[] receivedata = new byte[1024];
-                    DatagramPacket recv_packet = new DatagramPacket(receivedata, receivedata.length);
-                    Log.d("UDP", "S: Receiving...");
-                    m_sock.receive(recv_packet);
-                    String rec_msg = new String(recv_packet.getData());
-                    Log.d(" Received String ",rec_msg);
-                    publishProgress(rec_msg);
-                    InetAddress ipaddress = recv_packet.getAddress();
-                    int port = recv_packet.getPort();
-                    Log.d("IPAddress : ",ipaddress.toString());
-                    Log.d(" Port : ",Integer.toString(port));
+            while(!isCancelled()) {
+                try {
+                    ConnectionStateManager tetherMan = new ConnectionStateManager(getBaseContext());
+                    if (tetherMan.get_tether_state()) {
+                        currently_tethering = true;
+                        if (tetherMan.connection_nds_compatible()) {
+                            connectible = true;
+                            publishProgress("192.168.43.1"+ con_ok_string);
+                        } else {
+                            publishProgress("192.168.43.1"+ con_not_ok_string);
+                        }
+                    } else if (tetherMan.wifi_is_connected()) {
+                        wifi_connection = true;
+                        if (tetherMan.connection_nds_compatible()) {
+                            connectible = true;
+                            publishProgress(tetherMan.wifi_ip()+ con_ok_string);
+                        } else {
+                            publishProgress(tetherMan.wifi_ip()+ con_not_ok_string);
+                        }
+                    }
+                } catch (Throwable e){
+                    Log.e("frontmain", "throwable in tetherMan creation", e);
                 }
-            } catch (SocketException se) {
-                Log.d("UDP", "Socket closed", se);
-            } catch (Exception e) {
-                Log.e("UDP", "S: Error", e);
+                SystemClock.sleep(1000);
             }
             return null;
         }
 
-        //TODO replace pc receive stuff with protocol sync'd with nds program
-        int down_events(String msg) {
-            int current_held_buttons = 0;
-            String buttons = "lknmdawsoqijcv";
-            for(int i=0; i<14; i++) {
-                if(msg.indexOf(buttons.charAt(i)) != -1) {
-                    current_held_buttons += (1 << i);
-                }
-            }
-            return current_held_buttons;
+        @Override
+        protected void onProgressUpdate(String... msgs) {
+            super.onProgressUpdate(msgs);
+            TextView m_textview = (TextView) findViewById(R.id.netinfo_tv);
+            m_textview.setText(Html.fromHtml(msgs[0]));
         }
+    }
 
-        void send_new_events(int new_buttons, int released_buttons) {
-            for(int i=0; i<14; i++) {
-                if((new_buttons & (1<<i)) > 0) {
-                    //ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, events[i]));
-                }
-            }
+    // Prompt the user to allow the keyboard to be selected
+    public void input_enabler(View v) {
+        new AlertDialog.Builder(v.getContext())
+                .setTitle("Opening Language & Input Dialog")
+                .setMessage("Android will give a warning that enabling an additional input method" +
+                        " could be used to steal your data. This app doesn't do that - it's open " +
+                        "source, so you can check for yourself if you want!")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        startActivityForResult(new Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK), 2000);
+                    }
+                })
+                .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // do nothing
+                    }
+                })
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
 
-            for(int i=0; i<14; i++) {
-                if((released_buttons & (1<<i)) > 0) {
-                    //ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, events[i]));
-                }
-            }
-        }
-
-        protected void onProgressUpdate(String... msg) {
-            int current_held_buttons = down_events(msg[0]);
-            int new_buttons = current_held_buttons & ~last_held_buttons;
-            int released_buttons = last_held_buttons & ~current_held_buttons;
-
-            send_new_events(new_buttons, released_buttons);
-
-            TextView m_textview = (TextView) findViewById(R.id.hello_textview);
-            m_textview.setText(msg[0]);
-            return;
-        }
-
-        protected void onPostExecute(String msg) {
-            Log.d("post_execute", "hit");
-        }
+    // Prompt the user to select the keyboard
+    public void input_selector(View v) {
+        ((InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE)).showInputMethodPicker();
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_frontend_main);
+        Button inputenable_button = (Button) findViewById(R.id.inputenablebutton);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        setContentView(R.layout.activity_frontend_main);
-        TextView m_textview;
-        m_textview = (TextView) findViewById(R.id.hello_textview);
-        boolean connectable = false;
-        boolean wifi_connection = false;
-        boolean currently_tethering = false;
-
-        try {
-            ConnectionStateManager tetherMan = new ConnectionStateManager(getBaseContext());
-            if (tetherMan.get_tether_state()) {
-                currently_tethering = true;
-                if (tetherMan.connection_nds_compatible()) {
-                    connectable = true;
-                    m_textview.setText("192.168.43.1, connection compatible");
-                } else {
-                    m_textview.setText("192.168.43.1, connection might not be compatible");
-                }
-            } else if (tetherMan.wifi_is_connected()) {
-                wifi_connection = true;
-                if (tetherMan.connection_nds_compatible()) {
-                    connectable = true;
-                    m_textview.setText(tetherMan.wifi_ip()+", connection compatible");
-                } else {
-                    m_textview.setText(tetherMan.wifi_ip()+", nds might not be able to connect");
-                }
-            }
-        } catch (Throwable e){
-            Log.e("frontmain", "throwable in tetherMan creation", e);
-        }
-
-        rec_task = new Rec_UDP_packets();
-        rec_task.execute();
+        netcheck_task = new CheckForNetworkUpdates();
+        netcheck_task.execute();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        rec_task.cancel(true);
-        m_sock.close();
+        netcheck_task.cancel(true);
     }
 
     @Override

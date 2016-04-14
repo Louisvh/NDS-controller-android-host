@@ -2,7 +2,9 @@
 <resources>
 
     <string name="app_name">NDS Controller</string>
-    <string name="hello_world">Hello world!</string>
+    <string name="netfail_string">Network analysis failed!</string>
+    <string name="inputenable_string">Enable input method</string>
+    <string name="inputselect_string">Select input method</string>
     <string name="subtype_en_US">UDP keyboard</string>
     <string name="action_settings">Settings</string>
 
