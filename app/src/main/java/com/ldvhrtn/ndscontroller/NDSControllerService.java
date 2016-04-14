@@ -18,6 +18,7 @@ import android.widget.Toast;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 
 public class NDSControllerService extends InputMethodService {
     int prev_packet_num = 0;
@@ -35,21 +36,22 @@ public class NDSControllerService extends InputMethodService {
         private Exception exception;
         protected Void doInBackground(Void... v) {
             try {
-                m_sock=new DatagramSocket(3210);
-                while(!isCancelled())
-                {
+                m_sock = new DatagramSocket(3210);
+                while (!isCancelled()) {
                     byte[] receivedata = new byte[8];
                     DatagramPacket recv_packet = new DatagramPacket(receivedata, receivedata.length);
                     Log.d("UDP", "S: Receiving...");
                     m_sock.receive(recv_packet);
                     String rec_msg = new String(recv_packet.getData());
-                    Log.d(" Received String ",rec_msg);
+                    Log.d(" Received String ", rec_msg);
                     publishProgress(rec_msg);
                     InetAddress ipaddress = recv_packet.getAddress();
                     int port = recv_packet.getPort();
-                    Log.d("IPAddress : ",ipaddress.toString());
-                    Log.d(" Port : ",Integer.toString(port));
+                    Log.d("IPAddress : ", ipaddress.toString());
+                    Log.d(" Port : ", Integer.toString(port));
                 }
+            } catch (SocketException se) {
+                Log.d("UDP", "Socket closed");
             } catch (Exception e) {
                 Log.e("UDP", "S: Error", e);
             }

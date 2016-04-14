@@ -2,6 +2,7 @@ package com.ldvhrtn.ndscontroller;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -20,8 +21,8 @@ import android.util.Log;
 
 public class FrontendMain extends Activity {
 
-    static final String con_ok_string = ", connection compatible";
-    static final String con_not_ok_string = ", NDS may <font color='#EE0000'>not</font> be able to connect";
+    static final String con_ok_string = ", connection <font color='#007700'>compatible</font>.";
+    static final String con_not_ok_string = ", NDS may <font color='#EE0000'>not</font> be able to connect.";
     CheckForNetworkUpdates netcheck_task;
     boolean connectible = false;
     boolean wifi_connection = false;
@@ -31,28 +32,32 @@ public class FrontendMain extends Activity {
         protected Void doInBackground(Void... v) {
             while(!isCancelled()) {
                 try {
+                    Thread.sleep(500);
                     ConnectionStateManager tetherMan = new ConnectionStateManager(getBaseContext());
                     if (tetherMan.get_tether_state()) {
                         currently_tethering = true;
                         if (tetherMan.connection_nds_compatible()) {
                             connectible = true;
-                            publishProgress("192.168.43.1"+ con_ok_string);
+                            publishProgress("192.168.43.1" + con_ok_string);
                         } else {
-                            publishProgress("192.168.43.1"+ con_not_ok_string);
+                            publishProgress("192.168.43.1" + con_not_ok_string);
                         }
                     } else if (tetherMan.wifi_is_connected()) {
                         wifi_connection = true;
                         if (tetherMan.connection_nds_compatible()) {
                             connectible = true;
-                            publishProgress(tetherMan.wifi_ip()+ con_ok_string);
+                            publishProgress(tetherMan.wifi_ip() + con_ok_string);
                         } else {
-                            publishProgress(tetherMan.wifi_ip()+ con_not_ok_string);
+                            publishProgress(tetherMan.wifi_ip() + con_not_ok_string);
                         }
+                    } else {
+                        publishProgress("0.0.0.0" + ", <font color='#EE0000'>no connection.</font>");
                     }
+                } catch (InterruptedException ei) {
+                    Log.d("frontmain", "networkupdates check interrupted");
                 } catch (Throwable e){
                     Log.e("frontmain", "throwable in tetherMan creation", e);
                 }
-                SystemClock.sleep(1000);
             }
             return null;
         }
@@ -62,6 +67,7 @@ public class FrontendMain extends Activity {
             super.onProgressUpdate(msgs);
             TextView m_textview = (TextView) findViewById(R.id.netinfo_tv);
             m_textview.setText(Html.fromHtml(msgs[0]));
+            update_button_state(); //Update the buttons every second as well
         }
     }
 
@@ -93,11 +99,33 @@ public class FrontendMain extends Activity {
         ((InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE)).showInputMethodPicker();
     }
 
+    public void update_button_state() {
+        Button inputenable_button = (Button) findViewById(R.id.inputenablebutton);
+        Button inputselect_button = (Button) findViewById(R.id.inputselectbutton);
+        Context ctx = inputenable_button.getContext();
+
+        String id = Settings.Secure.getString(ctx.getContentResolver(), Settings.Secure.DEFAULT_INPUT_METHOD);
+        ComponentName default_input_method = ComponentName.unflattenFromString(id);
+        ComponentName m_service_name = new ComponentName(ctx, NDSControllerService.class);
+
+        if(m_service_name.equals(default_input_method)) {
+            String selected = "NDS Input Method is <font color='#00ee00'>Selected</font>";
+            inputselect_button.setCompoundDrawablesWithIntrinsicBounds(0, 0, android.R.drawable.checkbox_on_background, 0);
+            inputenable_button.setEnabled(false);
+            inputselect_button.setText(Html.fromHtml(selected));
+        } else {
+            String selected = "NDS Input Method is <font color='#ee0000'>Not Selected</font>";
+            inputselect_button.setCompoundDrawablesWithIntrinsicBounds(0, 0, android.R.drawable.checkbox_off_background, 0);
+            inputenable_button.setEnabled(true);
+            inputselect_button.setText(Html.fromHtml(selected));
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_frontend_main);
-        Button inputenable_button = (Button) findViewById(R.id.inputenablebutton);
+        update_button_state();
     }
 
     @Override

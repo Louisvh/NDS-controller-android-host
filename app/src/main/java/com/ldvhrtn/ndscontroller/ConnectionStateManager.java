@@ -52,7 +52,7 @@ public class ConnectionStateManager {
     // checks whether wifi is connected
     public boolean wifi_is_connected() {
         WifiInfo mWifiInfo = mWifiManager.getConnectionInfo();
-        return (mWifiInfo.getSSID() != null);
+        return (mWifiInfo.getSSID() != "<unknown ssid>");
     }
     public String wifi_ip() {
         WifiInfo wifiInfo = mWifiManager.getConnectionInfo();
