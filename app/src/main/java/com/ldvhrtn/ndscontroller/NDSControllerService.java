@@ -53,7 +53,7 @@ public class NDSControllerService extends InputMethodService {
             } catch (SocketException se) {
                 Log.d("UDP", "Socket closed");
             } catch (Exception e) {
-                Log.e("UDP", "S: Error", e);
+                Log.e("UDP", "Ignored error", e);
             }
             return null;
         }
@@ -98,21 +98,6 @@ public class NDSControllerService extends InputMethodService {
 
         protected void onPostExecute(String msg) {
             Log.d("post_execute", "hit");
-        }
-    }
-
-    public void onNDSPacket(int primaryCode, int[] keyCodes) {
-        ic = getCurrentInputConnection();
-        switch(primaryCode){
-            case Keyboard.KEYCODE_DONE:
-                ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
-                break;
-            default:
-                char code = (char)primaryCode;
-                if(Character.isLetter(code)){
-                    code = Character.toLowerCase(code);
-                }
-                ic.commitText(String.valueOf(code),1);
         }
     }
 
