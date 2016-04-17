@@ -7,10 +7,12 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.Html;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -32,7 +34,6 @@ public class FrontendMain extends Activity {
         protected Void doInBackground(Void... v) {
             while(!isCancelled()) {
                 try {
-                    Thread.sleep(500);
                     ConnectionStateManager tetherMan = new ConnectionStateManager(getBaseContext());
                     if (tetherMan.get_tether_state()) {
                         currently_tethering = true;
@@ -53,6 +54,7 @@ public class FrontendMain extends Activity {
                     } else {
                         publishProgress("0.0.0.0" + ", <font color='#EE0000'>no connection.</font>");
                     }
+                    Thread.sleep(3000);
                 } catch (InterruptedException ei) {
                     Log.d("frontmain", "networkupdates check interrupted");
                 } catch (Throwable e){
@@ -122,6 +124,17 @@ public class FrontendMain extends Activity {
     }
 
     @Override
+    public boolean onKeyDown( int keyCode, KeyEvent event ) {
+        TextView show_input = (TextView) findViewById(R.id.inputcheck_tv);
+        if (Build.VERSION.SDK_INT >= 12) {
+            show_input.setText(KeyEvent.keyCodeToString(keyCode)+", "+event.toString());
+        } else {
+            show_input.setText("keycode: "+Integer.toString(keyCode)+", "+event.toString());
+        }
+        return super.onKeyDown( keyCode, event );
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_frontend_main);
@@ -132,7 +145,11 @@ public class FrontendMain extends Activity {
     protected void onResume() {
         super.onResume();
         netcheck_task = new CheckForNetworkUpdates();
-        netcheck_task.execute();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            netcheck_task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } else {
+            netcheck_task.execute();
+        }
     }
 
     @Override

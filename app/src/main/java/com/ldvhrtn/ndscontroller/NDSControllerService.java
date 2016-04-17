@@ -2,6 +2,7 @@ package com.ldvhrtn.ndscontroller;
 
 import android.inputmethodservice.InputMethodService;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.inputmethod.EditorInfo;
@@ -15,7 +16,7 @@ import java.net.SocketException;
 import java.nio.ByteBuffer;
 
 public class NDSControllerService extends InputMethodService {
-    int last_held_buttons = 0;
+    int[] last_held_buttons = {0,0,0,0};
 
     // values in [0] correspond to libnds codes in order
     // TODO read these from saved settings
@@ -30,8 +31,8 @@ public class NDSControllerService extends InputMethodService {
     Rec_UDP_packets rec_task;
 
     class Rec_UDP_packets extends AsyncTask<Void, Integer, Void> {
-        private Exception exception;
         protected Void doInBackground(Void... v) {
+            if(android.os.Debug.isDebuggerConnected()) android.os.Debug.waitForDebugger();
             try {
                 m_sock = new DatagramSocket(3210);
                 while (!isCancelled()) {
@@ -84,11 +85,12 @@ public class NDSControllerService extends InputMethodService {
         }
 
         protected void onProgressUpdate(Integer... msg) {
+            Toast.makeText(getApplicationContext(), msg[0].toString(), Toast.LENGTH_SHORT).show();
             int current_held_buttons = get_held_buttons(msg[0]);
             int current_player = get_current_player(msg[0]);
-            int new_buttons = current_held_buttons & ~last_held_buttons;
-            int released_buttons = last_held_buttons & ~current_held_buttons;
-            last_held_buttons = current_held_buttons;
+            int new_buttons = current_held_buttons & ~last_held_buttons[current_player];
+            int released_buttons = last_held_buttons[current_player] & ~current_held_buttons;
+            last_held_buttons[current_player] = current_held_buttons;
 
             send_new_events(new_buttons, released_buttons, current_player);
             return;
@@ -105,7 +107,11 @@ public class NDSControllerService extends InputMethodService {
         Toast.makeText(getApplicationContext(), "Starting UDP input", Toast.LENGTH_SHORT).show();
         ic = getCurrentInputConnection();
         rec_task = new Rec_UDP_packets();
-        rec_task.execute();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            rec_task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } else {
+            rec_task.execute();
+        }
     }
 
     public NDSControllerService() {

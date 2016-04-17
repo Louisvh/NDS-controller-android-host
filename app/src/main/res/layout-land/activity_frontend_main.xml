@@ -19,7 +19,8 @@
             android:layout_height="wrap_content"
             android:src="@drawable/main_top_pic"
             android:layout_centerVertical="true"
-            android:layout_centerHorizontal="true" />
+            android:layout_centerHorizontal="true"
+            tools:ignore="ContentDescription"/>
 
     </RelativeLayout>
 
