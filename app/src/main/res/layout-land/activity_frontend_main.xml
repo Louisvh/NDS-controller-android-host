@@ -1,32 +1,40 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-    android:orientation="horizontal"
     android:layout_height="match_parent" android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="@dimen/activity_vertical_margin" tools:context=".FrontendMain"
     android:background="@drawable/bgtile"
-    android:weightSum="30" >
+    android:weightSum="30"
+    android:orientation="vertical">
 
 
     <RelativeLayout
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:layout_weight="13">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/main_top_pic"
+            android:layout_centerVertical="true"
+            android:layout_centerHorizontal="true" />
 
     </RelativeLayout>
 
     <RelativeLayout
-        android:layout_width="0dp"
-        android:layout_height="fill_parent"
-        android:layout_weight="17"
-        android:layout_marginTop="40dp">
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/interface_rl"
+        android:layout_weight="17">
 
         <RelativeLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@color/black"
             android:padding="1dp"
+            android:layout_marginTop="10dp"
             android:id="@+id/netinfo_border">
 
             <TextView
@@ -46,7 +54,7 @@
             android:layout_height="wrap_content"
             android:layout_below="@id/netinfo_border"
             android:gravity="center"
-            android:layout_marginTop="40dp"
+            android:layout_marginTop="20dp"
             android:onClick="input_enabler"
             android:text="@string/inputenable_string"
             android:id="@+id/inputenablebutton"/>
@@ -57,9 +65,37 @@
             android:layout_below="@id/inputenablebutton"
             android:gravity="center"
             android:layout_marginTop="10dp"
+            android:layout_marginBottom="30dp"
             android:onClick="input_selector"
             android:text="@string/inputselect_string"
             android:id="@+id/inputselectbutton"/>
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/inputselectbutton"
+            android:background="@color/gray_3"
+            android:padding="1dp"
+            android:id="@+id/inputcheck_border">
+
+            <TextView
+                android:text="@string/inputcheck_string"
+                android:textColor="@color/gray_2"
+                android:id="@+id/inputcheck_tv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:background="@color/white"
+                android:layout_margin="3dp"
+                android:padding="3dp" />
+
+        </RelativeLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@id/inputcheck_border"
+            android:text="@string/inputcheck_title" />
 
     </RelativeLayout>
 

@@ -3,6 +3,8 @@
 
     <string name="app_name">NDS Controller</string>
     <string name="netfail_string"> </string>
+    <string name="inputcheck_string">No NDS input received yet...</string>
+    <string name="inputcheck_title">Received Input:</string>
     <string name="inputenable_string">Enable input method</string>
     <string name="inputselect_string">Select input method</string>
     <string name="subtype_en_US">UDP keyboard</string>

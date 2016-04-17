@@ -85,8 +85,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:background="@color/white"
-                android:padding="3dp"
-                android:layout_margin="3dp"/>
+                android:padding="3dp" />
 
         </RelativeLayout>
 
