@@ -12,6 +12,8 @@ import android.widget.Toast;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 
@@ -34,10 +36,14 @@ public class NDSControllerService extends InputMethodService {
         protected Void doInBackground(Void... v) {
             if(android.os.Debug.isDebuggerConnected()) android.os.Debug.waitForDebugger();
             try {
-                m_sock = new DatagramSocket(3210);
+                m_sock = new DatagramSocket(null);
+                m_sock.setReuseAddress(true);
+                m_sock.bind(new InetSocketAddress(3210));
+
                 while (!isCancelled()) {
                     byte[] receivedata = new byte[4];
                     DatagramPacket recv_packet = new DatagramPacket(receivedata, receivedata.length);
+                    recv_packet.setLength(receivedata.length);
                     Log.d("UDP", "Socket receiving");
                     m_sock.receive(recv_packet);
                     ByteBuffer wrapped_packet = ByteBuffer.wrap(recv_packet.getData());
@@ -50,7 +56,7 @@ public class NDSControllerService extends InputMethodService {
                     Log.d(" Port : ", Integer.toString(port));
                 }
             } catch (SocketException se) {
-                Log.d("UDP", "Socket closed");
+                Log.d("UDP", "Socket error", se);
             } catch (Exception e) {
                 Log.e("UDP", "Ignored error", e);
             }
@@ -85,9 +91,9 @@ public class NDSControllerService extends InputMethodService {
         }
 
         protected void onProgressUpdate(Integer... msg) {
-            Toast.makeText(getApplicationContext(), msg[0].toString(), Toast.LENGTH_SHORT).show();
+            //Toast.makeText(getApplicationContext(), msg[0].toString(), Toast.LENGTH_SHORT).show();
             int current_held_buttons = get_held_buttons(msg[0]);
-            int current_player = get_current_player(msg[0]);
+            int current_player = get_current_player(msg[0])%4;
             int new_buttons = current_held_buttons & ~last_held_buttons[current_player];
             int released_buttons = last_held_buttons[current_player] & ~current_held_buttons;
             last_held_buttons[current_player] = current_held_buttons;
