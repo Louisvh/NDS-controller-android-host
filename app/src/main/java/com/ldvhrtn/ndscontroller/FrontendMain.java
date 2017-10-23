@@ -24,7 +24,7 @@ import android.util.Log;
 public class FrontendMain extends Activity {
 
     static final String con_ok_string = ", connection <font color='#007700'>compatible</font>.";
-    static final String con_not_ok_string = ", NDS may <font color='#EE0000'>not</font> be able to connect.";
+    static final String con_not_ok_string = ", NDS may <font color='#EE3300'>not</font> be able to connect.";
     CheckForNetworkUpdates netcheck_task;
     boolean connectible = false;
     boolean wifi_connection = false;
