@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <foreground android:drawable="@drawable/nds_controller_logo" />
+    <background android:drawable="@drawable/nds_controller_logo_background" />
+    <monochrome android:drawable="@drawable/nds_controller_logo_monochrome" />
+</adaptive-icon>

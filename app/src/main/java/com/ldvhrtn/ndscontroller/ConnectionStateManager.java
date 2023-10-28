@@ -1,114 +1,100 @@
 package com.ldvhrtn.ndscontroller;
 
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
 import java.util.List;
 
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.text.format.Formatter;
 import android.util.Log;
+
+import androidx.core.app.ActivityCompat;
 
 public class ConnectionStateManager {
     private final String TAG = "Con State Manager";
     private final WifiManager mWifiManager;
-    private WifiConfiguration mConfig;
-    private Method set_tether_enabled;
-    private Method get_tether_configuration;
-    private Method get_tether_state;
 
-    public ConnectionStateManager(Context context) throws SecurityException, NoSuchMethodException {
+    public ConnectionStateManager(Context context) throws SecurityException {
         if (context == null) throw new NullPointerException();
         mWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-        set_tether_enabled = mWifiManager.getClass().getMethod("setWifiApEnabled", WifiConfiguration.class,boolean.class);
-        get_tether_configuration = mWifiManager.getClass().getMethod("getWifiApConfiguration",null);
-        get_tether_state = mWifiManager.getClass().getMethod("isWifiApEnabled");
     }
-    // sets the tethering state to boolean state
-    public boolean setWifiApState(WifiConfiguration config, boolean state) {
-        if (config == null) throw new NullPointerException();
-        try {
-            if (state) {
-                mWifiManager.setWifiEnabled(!state);
+
+    public String get_ip_address(){
+        WifiInfo mWifiInfo = mWifiManager.getConnectionInfo();
+        int ip = mWifiInfo.getIpAddress();
+        String ip_str;
+        if (ip == 0) {
+            ip_str = getIpAddressAP();
+            if (ip_str.length() < 1) {
+                ip_str = "0.0.0.0";
             }
-            return (Boolean) set_tether_enabled.invoke(mWifiManager, config, state);
-        } catch (Exception e) {
-            Log.e(TAG, "", e);
-            return false;
+        } else {
+            ip_str = String.format("%d.%d.%d.%d", (ip & 0xff), (ip >> 8 & 0xff), (ip >> 16 & 0xff),
+                    (ip >> 24 & 0xff));
         }
-    }
-    // presents the current tethering configuration
-    public WifiConfiguration getWifiApConfiguration() {
-        try{
-            return (WifiConfiguration) get_tether_configuration.invoke(mWifiManager, null);
-        }
-        catch(Exception e)
-        {
-            return null;
-        }
+        return ip_str;
     }
     // checks whether wifi is connected
     public boolean wifi_is_connected() {
         WifiInfo mWifiInfo = mWifiManager.getConnectionInfo();
-        return (mWifiInfo.getSSID() != "<unknown ssid>");
+        int ip = mWifiInfo.getIpAddress();
+        String m_ip_str = String.format("%d.%d.%d.%d", (ip & 0xff), (ip >> 8 & 0xff), (ip >> 16 & 0xff),
+                (ip >> 24 & 0xff));
+        Log.d(TAG, m_ip_str);
+        return (mWifiInfo.getIpAddress() != 0);
     }
-    public String wifi_ip() {
-        WifiInfo wifiInfo = mWifiManager.getConnectionInfo();
-        int m_ip = wifiInfo.getIpAddress();
-        return Formatter.formatIpAddress(m_ip);
-    }
-    // checks current tethering state
+
     public boolean get_tether_state() {
-        try {
-            boolean state = (Boolean) get_tether_state.invoke(mWifiManager);
-            boolean state1 = state;
-            return state;
-        } catch (Exception e) {
-            Log.e(TAG, e.toString(), e);
-            Log.e(TAG, e.toString());
-            return false;
-        }
+        // can't easily access AP details at higher API levels anymore, just trust this I guess?
+        return (get_ip_address().length() > 7) && !wifi_is_connected();
     }
+
     // returns false if non-trivial security options are active
     public boolean connection_nds_compatible() {
-        boolean trivial_connection = false;
-        WifiConfiguration mConfig = getWifiApConfiguration();
-        if(mWifiManager.isWifiEnabled()) {
-            List<ScanResult> networkList = mWifiManager.getScanResults();
-
+        if (mWifiManager.isWifiEnabled()) {
             WifiInfo mWifiInfo = mWifiManager.getConnectionInfo();
-            String currentSSID = mWifiInfo.getSSID();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                return mWifiInfo.getCurrentSecurityType() < 2;
+            } else {
+                // TODO check how to do this at lower api levels?
+                return false;
+            }
+        }
+        return false;
+    }
 
-            if (networkList != null) {
-                for (ScanResult network : networkList) {
-                    if (currentSSID.equals('"'+network.SSID+'"')){
-                        String Capabilities =  network.capabilities;
-                        Log.d (TAG, network.SSID + " capabilities : " + Capabilities);
+    private String getIpAddressAP() {
+        String ip = "";
+        try {
+            Enumeration<NetworkInterface> enumNetworkInterfaces = NetworkInterface
+                    .getNetworkInterfaces();
+            while (enumNetworkInterfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = enumNetworkInterfaces
+                        .nextElement();
+                Enumeration<InetAddress> enumInetAddress = networkInterface
+                        .getInetAddresses();
+                while (enumInetAddress.hasMoreElements()) {
+                    InetAddress inetAddress = enumInetAddress.nextElement();
 
-                        if (Capabilities.contains("WPA2") || Capabilities.contains("WPA")
-                                || Capabilities.contains("WEP")) {
-                            trivial_connection = false;
-                        } else {
-                            trivial_connection = true;
-                        }
+                    if (inetAddress.isSiteLocalAddress()) {
+                        ip += inetAddress.getHostAddress();
                     }
                 }
             }
-        } else {
-            boolean WPA_disabled = mConfig.preSharedKey == null;
-            String WEP_key = mConfig.wepKeys[mConfig.wepTxKeyIndex];
-            boolean WEP_trivial;
-            if (WEP_key == null) {
-                WEP_trivial = true;
-            } else {
-                //this is incorrect, length isn't known (TODO, maybe)
-                //WEP_trivial = WEP_key.length() == 5 || WEP_key.length() == 13;
-                WEP_trivial = false;
-            }
-            trivial_connection = WPA_disabled && WEP_trivial;
+        } catch (SocketException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            ip += "Something Wrong! " + e + "\n";
         }
-        return trivial_connection;
+        return ip;
     }
 }

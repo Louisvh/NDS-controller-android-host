@@ -11,24 +11,37 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="13">
+        android:layout_height="0dp"
+        android:layout_weight="23"
+        android:background="@color/black">
 
-        <ImageView
-            android:layout_margin="30dp"
-            android:layout_width="wrap_content"
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="3dp">
+
+        <TextView
+            android:scrollbars="vertical"
+            android:padding="10dp"
+            android:scrollbarAlwaysDrawVerticalTrack="true"
+            android:fadeScrollbars="false"
+            android:textSize="16sp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:src="@drawable/main_top_pic"
-            tools:ignore="ContentDescription"/>
+            android:background="@color/white"
+            android:textColor="@color/black"
+            android:text="@string/manual_text"
+            />
 
+    </ScrollView>
     </RelativeLayout>
 
     <RelativeLayout
         android:layout_width="match_parent"
+        android:paddingTop="20dp"
         android:layout_height="wrap_content"
         android:id="@+id/interface_rl"
-        android:layout_weight="17">
+        android:layout_weight="7">
 
         <RelativeLayout
             android:layout_width="wrap_content"
@@ -79,15 +92,18 @@
             android:id="@+id/inputcheck_border">
 
             <TextView
-                android:text="@string/inputcheck_string"
-                android:textColor="@color/gray_2"
                 android:id="@+id/inputcheck_tv"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center"
+                android:layout_marginStart="3dp"
+                android:layout_marginTop="3dp"
+                android:layout_marginEnd="3dp"
+                android:layout_marginBottom="3dp"
                 android:background="@color/white"
+                android:gravity="center"
                 android:padding="3dp"
-                android:layout_margin="3dp"/>
+                android:text="@string/inputcheck_string"
+                android:textColor="@color/gray_3" />
 
         </RelativeLayout>
 

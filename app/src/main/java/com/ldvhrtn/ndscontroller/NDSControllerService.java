@@ -3,18 +3,25 @@ package com.ldvhrtn.ndscontroller;
 import android.inputmethodservice.InputMethodService;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Html;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
+import android.widget.TextView;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class NDSControllerService extends InputMethodService {
     int[] last_held_buttons = {0,0,0,0};
+    int[] player_ips = {0,0,0,0};
 
     // values in [0] correspond to libnds codes in order
     // TODO read these from saved settings
@@ -29,32 +36,56 @@ public class NDSControllerService extends InputMethodService {
     DatagramSocket m_sock;
     Rec_UDP_packets rec_task;
 
-    class Rec_UDP_packets extends AsyncTask<Void, Integer, Void> {
-        protected Void doInBackground(Void... v) {
+    class Rec_UDP_packets {
+        private final ExecutorService executor;
+        boolean cancelled = false;
+        private boolean isCancelled(){
+            return this.cancelled;
+        }
+        public void cancel(){
+            this.cancelled = true;
+        }
+
+        int[] known_player_ips;
+        public Rec_UDP_packets(int[] saved_player_ips) {
+            this.known_player_ips = saved_player_ips;
+            this.executor = Executors.newSingleThreadExecutor();
+        }
+
+        protected Void doInBackground() {
             if(android.os.Debug.isDebuggerConnected()) android.os.Debug.waitForDebugger();
-            try {
-                m_sock = new DatagramSocket(null);
-                m_sock.setReuseAddress(true);
-                m_sock.bind(new InetSocketAddress(3210));
+            while(!isCancelled()) {
+                try {
+                    m_sock = new DatagramSocket(null);
+                    m_sock.setReuseAddress(true);
+                    m_sock.bind(new InetSocketAddress(3210));
 
-                while (!isCancelled()) {
-                    int button_data, meta_data, port;
-                    byte[] receivedata = new byte[8];
-                    Log.d("UDP", "Socket receiving");
-                    DatagramPacket recv_packet = new DatagramPacket(receivedata, receivedata.length);
-                    m_sock.receive(recv_packet);
-
-                    button_data = byteArrayToInt(receivedata, 0);
-                    meta_data = byteArrayToInt(receivedata, 4);
-                    Log.d(" Received int", Integer.toString(button_data));
-                    publishProgress(button_data, meta_data);
+                    while (!isCancelled()) {
+                        int button_data, meta_data, port;
+                        byte[] receivedata = new byte[8];
+                        Log.d("UDP", "Socket receiving");
+                        DatagramPacket recv_packet = new DatagramPacket(receivedata, receivedata.length);
+                        m_sock.receive(recv_packet);
+                        String source_ip = recv_packet.getAddress().toString();
+                        int ip_int = Integer.parseInt(source_ip.replace(".","").replace("/",""));
+                        button_data = byteArrayToInt(receivedata, 0);
+                        meta_data = byteArrayToInt(receivedata, 4);
+                        Log.d(" Received int", Integer.toString(button_data));
+                        publishProgress(button_data, meta_data, ip_int);
+                    }
+                } catch (SocketException se) {
+                    Log.d("UDP", "Socket error", se);
+                } catch (Exception e) {
+                    Log.e("UDP", "Ignored error", e);
                 }
-            } catch (SocketException se) {
-                Log.d("UDP", "Socket error", se);
-            } catch (Exception e) {
-                Log.e("UDP", "Ignored error", e);
+                return null;
             }
             return null;
+        }
+
+        public void execute() {
+            Log.d("NDSControllerService", "executing service loop");
+            this.executor.execute(() -> this.doInBackground());
         }
 
         int byteArrayToInt(byte[] b, int offset) {
@@ -75,32 +106,34 @@ public class NDSControllerService extends InputMethodService {
             }
         }
 
-        protected void onProgressUpdate(Integer... msg) {
+        private void publishProgress(Integer... msg){
             int current_held_buttons = msg[0];
             int current_player = msg[1]%4;
+            int current_ip = msg[2];
+            if (current_player == 0) {
+                for (int i=0; i<4; i++){
+                    if (this.known_player_ips[i] == 0){
+                        this.known_player_ips[i] = current_ip;
+                        current_player = i;
+                        break;
+                    }
+                }
+            }
             int new_buttons = current_held_buttons & ~last_held_buttons[current_player];
             int released_buttons = last_held_buttons[current_player] & ~current_held_buttons;
             last_held_buttons[current_player] = current_held_buttons;
 
             send_new_events(new_buttons, released_buttons, current_player);
-            return;
-        }
-
-        protected void onPostExecute(Void msg) {
-            Log.d("post_execute", "hit");
         }
     }
 
     @Override
     public void onStartInput(EditorInfo attribute, boolean restarting) {
         super.onStartInput(attribute, restarting);
+        Log.d("NDSControllerService", "onStartInput hit");
         ic = getCurrentInputConnection();
-        rec_task = new Rec_UDP_packets();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            rec_task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-        } else {
-            rec_task.execute();
-        }
+        rec_task = new Rec_UDP_packets(player_ips);
+        rec_task.execute();
     }
 
     public NDSControllerService() {
@@ -109,7 +142,8 @@ public class NDSControllerService extends InputMethodService {
     @Override
     public void onFinishInput() {
         super.onFinishInput();
-        rec_task.cancel(true);
+        Log.d("NDSControllerService", "onFinishInput hit");
+        rec_task.cancel();
         if (m_sock != null) m_sock.close();
     }
 }

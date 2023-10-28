@@ -1,13 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <string name="app_name">NDS Controller</string>
-    <string name="netfail_string"> </string>
+    <string name="netfail_string">Detecting IP Address...</string>
     <string name="inputcheck_string">No NDS input received yet...</string>
     <string name="inputcheck_title">Received Input:</string>
     <string name="inputenable_string">Enable input method</string>
     <string name="inputselect_string">Select input method</string>
     <string name="subtype_en_US">UDP keyboard</string>
     <string name="action_settings">Settings</string>
-
+    <string name="manual_text"><b>Set-up instructions:</b>\n\n1) Make sure your phone is either connected to a compatible Wi-Fi access point or the phone is in tethering mode. \n2) Enable and select the NDS-Controller input method using the buttons below. \n3) Start NDS-controller on your (3)DS; make sure it is connected to the same network. \n4) Enter the IP-address on your DS and press the X-button to confirm. \n\nIf the setup is successful, received button presses will be shown in the \"received input\" field. \n<b>Note:</b> while NDS-Controller is the selected input method, you cannot use your regular keyboard. Do not forget to switch the input method back to your regular keyboard after playing. \n\nIf you are having connection issues, ensure your DS can connect to the access point using the Wi-Fi set-up menu of your game system (for [2/3]DS) or a commercial game (for NDS).</string>
 </resources>
