@@ -25,7 +25,7 @@ now also been updated to work with the Android app.
 Build the Android app using `./gradlew build`. Either sign the generated release-version.apk with your own keys, or install the debug-version.apk (Android does not
 allow installing unsigned release apks, but unsigned debug apks are fair game).
 
-Alternatively, just download the signed release apk from this repository.
+Alternatively, just [download the signed release apk](https://github.com/Louisvh/NDS-controller-android-host/releases/download/v0.3/NDS-controller-v0.3.apk) from this repository.
 
 *NDS:*
 Build the client into a .nds file using devkitARM or download it __[here](https://github.com/Louisvh/NDS-controller/releases/download/v1.2.0/NDS-controller.nds)__.
